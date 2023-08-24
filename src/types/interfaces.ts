@@ -1,6 +1,6 @@
 interface ICSOrganizer {
-  CN: string
-  mailto: string
+  OWNER: string
+  MAIL: string
 }
 export interface ICSFormat {
   UID: string
@@ -10,5 +10,5 @@ export interface ICSFormat {
   DTSTAMP: string
   LOCATION: string
   SUMMARY: string
-  ORGANIZER: ICSOrganizer
+  CN: ICSOrganizer
 }

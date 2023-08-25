@@ -1,3 +1,4 @@
+import { readFileSync } from 'fs'
 import type { ICSFormat } from './types/interfaces'
 
 export const parseFromICS = (icsData: string): ICSFormat[] => {
@@ -23,6 +24,15 @@ export const parseFromICS = (icsData: string): ICSFormat[] => {
   }
   parsedEvents.shift()
   return parsedEvents
+}
+export const readICSFile = (filePath: string): ICSFormat[] => {
+  try {
+    const fileData = readFileSync(filePath, 'utf-8')
+    return parseFromICS(fileData)
+  } catch (error) {
+    console.error('Error reading .ics file:', error)
+    return []
+  }
 }
 export const parseToICF = (obj: ICSFormat[], filename?: string) => {
   let ICSFile = `BEGIN:VCALENDAR
@@ -52,5 +62,6 @@ END:VEVENT
   link.href = URL.createObjectURL(file)
   link.download = `${filename}.ics`
   link.click()
+
   URL.revokeObjectURL(link.href)
 }

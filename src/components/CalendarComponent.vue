@@ -1,12 +1,12 @@
 <template>
   <div class="flex flex-col items-center justify-center gap-4 mt-20">
     <div class="flex flex-row justify-between w-[80%]">
-      <button
+      <input
+        type="file"
+        @change="checkServer"
         class="p-2 rounded-md bg-green-300 font-semibold transition-all duration-200 hover:scale-105"
-        @click="checkServer"
-      >
-        Add Event
-      </button>
+      />
+
       <div class="flex flex-row items-center">
         <button
           @click="prevMonth"
@@ -43,6 +43,7 @@
 
 <script setup lang="ts">
   import { ref, computed } from 'vue'
+  import axios from 'axios'
   interface CalendarDay {
     day: number | string
     inCurrentMonth: boolean
@@ -127,15 +128,20 @@
 
   updateCalendarDays()
 
-  const checkServer = async () => {
+  const checkServer = async (event: any) => {
+    const file = event.target.files[0]
+
+    const formData = new FormData()
+    formData.append('icsFile', file)
+
     try {
-      const response = await fetch('/api/check-availability')
-      // Replace the following line with console.log or alert
-      alert('Server is available')
-      alert(response)
+      const response = await axios.post('http://localhost:3000/api/upload-ics', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+
+      console.log(response.data)
     } catch (error) {
-      // Replace the following line with console.log or alert
-      console.error('Server is not available:', error)
+      console.error(error)
     }
   }
 </script>

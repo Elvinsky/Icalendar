@@ -1,12 +1,22 @@
 <template>
-  <div class="flex flex-col items-center justify-center gap-4 mt-20">
+  <div v-if="isLoading">loading</div>
+  <div
+    v-else
+    class="flex flex-col items-center justify-center gap-4 mt-20"
+  >
     <div class="flex flex-row justify-between w-[80%]">
       <input
         type="file"
         @change="checkServer"
+        accept=".ics"
         class="p-2 rounded-md bg-green-300 font-semibold transition-all duration-200 hover:scale-105"
       />
-
+      <button
+        @click="fetchData"
+        class="p-2 rounded-md bg-green-300 font-semibold transition-all duration-200 hover:scale-105"
+      >
+        Fetch
+      </button>
       <div class="flex flex-row items-center">
         <button
           @click="prevMonth"
@@ -39,19 +49,18 @@
       </div>
     </div>
   </div>
+  <div>{{ events }}</div>
 </template>
 
 <script setup lang="ts">
   import { ref, computed } from 'vue'
-  import axios from 'axios'
-  interface CalendarDay {
-    day: number | string
-    inCurrentMonth: boolean
-    dayOfWeek: string
-    isToday?: boolean
-  }
-  const todayDate = computed<Date>(() => new Date())
+  import type { CalendarDay } from '@/types/interfaces'
+  import { useEventStore } from '@/stores/events'
+  import { storeToRefs } from 'pinia'
 
+  const todayDate = computed<Date>(() => new Date())
+  const { uploadICS, fetchEvents } = useEventStore()
+  const { isLoading, events } = storeToRefs(useEventStore())
   const months: string[] = [
     'January',
     'February',
@@ -73,6 +82,13 @@
 
   const calendarDays = ref<CalendarDay[]>([])
 
+  const checkServer = async (event: any) => {
+    const file = event.target.files[0]
+    uploadICS(file)
+  }
+  const fetchData = async () => {
+    fetchEvents()
+  }
   const prevMonth = (): void => {
     if (currentMonthIndex.value === 0) {
       currentYear.value -= 1
@@ -127,21 +143,4 @@
   }
 
   updateCalendarDays()
-
-  const checkServer = async (event: any) => {
-    const file = event.target.files[0]
-
-    const formData = new FormData()
-    formData.append('icsFile', file)
-
-    try {
-      const response = await axios.post('http://localhost:3000/api/upload-ics', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      })
-
-      console.log(response.data)
-    } catch (error) {
-      console.error(error)
-    }
-  }
 </script>

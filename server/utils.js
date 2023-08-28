@@ -1,6 +1,4 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
-const { readFileSync } = require('fs')
-
 const readICSFile = icsData => {
   const events = icsData.split('BEGIN:VEVENT')
   const parsedEvents = []

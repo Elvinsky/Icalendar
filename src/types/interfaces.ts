@@ -12,3 +12,9 @@ export interface ICSFormat {
   SUMMARY: string
   CN: ICSOrganizer
 }
+export interface CalendarDay {
+  day: number | string
+  inCurrentMonth: boolean
+  dayOfWeek: string
+  isToday?: boolean
+}

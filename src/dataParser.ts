@@ -1,4 +1,3 @@
-import { readFileSync } from 'fs'
 import type { ICSFormat } from './types/interfaces'
 
 export const parseFromICS = (icsData: string): ICSFormat[] => {

@@ -7,7 +7,7 @@
     <div class="flex flex-row justify-between w-[80%]">
       <input
         type="file"
-        @change="checkServer"
+        @change="uploadICSFile"
         accept=".ics"
         class="p-2 rounded-md bg-green-300 font-semibold transition-all duration-200 hover:scale-105"
       />
@@ -15,7 +15,7 @@
         @click="fetchData"
         class="p-2 rounded-md bg-green-300 font-semibold transition-all duration-200 hover:scale-105"
       >
-        Fetch
+        Refresh
       </button>
       <div class="flex flex-row items-center">
         <button
@@ -53,8 +53,13 @@
   </div>
   <Teleport to="body">
     <EventsDescription
-      v-if="isModalVisible"
-      @close-modal="isModalVisible = false"
+      v-if="modalActive === 'view'"
+      @close-modal="modalActive = ''"
+      @open-add-modal="modalActive = 'add'"
+    />
+    <EventModal
+      v-if="modalActive === 'add'"
+      @close-modal="modalActive = ''"
     />
   </Teleport>
 </template>
@@ -66,6 +71,7 @@
   import { storeToRefs } from 'pinia'
   import { isSameDay, parseISO8601Date } from '../utils/dateManipulation'
   import EventsDescription from './EventsDescription.vue'
+  import EventModal from './EventModal.vue'
   const todayDate = computed<Date>(() => new Date())
   const { uploadICS, fetchEvents, uploadEventDetails } = useEventStore()
   const { isLoading, events } = storeToRefs(useEventStore())
@@ -88,16 +94,15 @@
   const currentYear = ref<number>(currentDate.value.getFullYear())
   const currentMonthIndex = ref<number>(currentDate.value.getMonth())
   const calendarDays = ref<CalendarDay[]>([])
-  const isModalVisible = ref<boolean>(false)
+  const modalActive = ref<'view' | 'add' | ''>('')
 
   const openEvents = (events: ICSFormat[]) => {
     uploadEventDetails(events)
-    isModalVisible.value = true
+    modalActive.value = 'view'
   }
-
-  const checkServer = async (event: any) => {
+  const uploadICSFile = async (event: any) => {
     const file = event.target.files[0]
-    uploadICS(file)
+    uploadICS(file).then(() => updateCalendarDays())
   }
   const fetchData = async () => {
     fetchEvents().then(() => updateCalendarDays())

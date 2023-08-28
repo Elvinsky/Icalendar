@@ -71,11 +71,27 @@ app.post('/api/upload-ics', upload.single('icsFile'), async (req, res) => {
 
 app.get('/api/get-events', async (req, res) => {
   try {
-    const events = await ICSFormat.find({}, '-_id') // Exclude the "_id" field from the response
+    const events = await ICSFormat.find({}, '-_id')
     res.json(events)
   } catch (error) {
     console.error(error)
     res.status(500).send('Error retrieving events')
+  }
+})
+app.delete('/api/delete-event/:uid', async (req, res) => {
+  try {
+    const uidToDelete = req.params.uid
+
+    const deletedEvent = await ICSFormat.findOneAndDelete({ UID: uidToDelete })
+
+    if (!deletedEvent) {
+      return res.status(404).send('Event not found')
+    }
+
+    res.send('Event deleted successfully')
+  } catch (error) {
+    console.error(error)
+    res.status(500).send('Error deleting event')
   }
 })
 app.delete('/api/delete-all-events', async (req, res) => {

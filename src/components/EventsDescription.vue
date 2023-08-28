@@ -10,6 +10,7 @@
         class="flex flex-col gap-5 items-center justify-start m-4 border border-black p-2 rounded-md"
         v-for="data in currentEvent"
         :key="data.UID"
+        @submit.prevent
       >
         <p>{{ data.DESCRIPTION }}</p>
         <p>
@@ -18,6 +19,7 @@
         </p>
         <p>{{ data.LOCATION }}</p>
         <p>{{ data.SUMMARY }}</p>
+        <button @click="deleteEvent(data.UID)">Delete</button>
       </form>
       <button @click="closeModal">Close</button>
     </div>
@@ -31,12 +33,16 @@
 
   const { currentEvent } = storeToRefs(useEventStore())
 
-  const emits = defineEmits(['closeModal', 'openAddModal'])
+  const emits = defineEmits(['closeModal', 'openAddModal', 'deleteEvent'])
   const closeModal = () => {
     emits('closeModal')
   }
   const openAddModal = () => {
     emits('openAddModal')
+  }
+  const deleteEvent = (id: string) => {
+    console.log(id)
+    emits('deleteEvent', id)
   }
 </script>
 

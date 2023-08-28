@@ -7,7 +7,7 @@
     <div class="flex flex-row justify-between w-[80%]">
       <input
         type="file"
-        @change="uploadICSFile"
+        @change="uploadICS"
         accept=".ics"
         class="p-2 rounded-md bg-green-300 font-semibold transition-all duration-200 hover:scale-105"
       />
@@ -56,6 +56,7 @@
       v-if="modalActive === 'view'"
       @close-modal="modalActive = ''"
       @open-add-modal="modalActive = 'add'"
+      @delete-event="handleDelete"
     />
     <EventModal
       v-if="modalActive === 'add'"
@@ -73,7 +74,7 @@
   import EventsDescription from './EventsDescription.vue'
   import EventModal from './EventModal.vue'
   const todayDate = computed<Date>(() => new Date())
-  const { uploadICS, fetchEvents, uploadEventDetails } = useEventStore()
+  const { uploadICSFile, fetchEvents, uploadEventDetails, deleteEvent } = useEventStore()
   const { isLoading, events } = storeToRefs(useEventStore())
   const months: string[] = [
     'January',
@@ -100,9 +101,13 @@
     uploadEventDetails(events)
     modalActive.value = 'view'
   }
-  const uploadICSFile = async (event: any) => {
+  const handleDelete = async (id: string) => {
+    deleteEvent(id).then(() => updateCalendarDays())
+    modalActive.value = ''
+  }
+  const uploadICS = async (event: any) => {
     const file = event.target.files[0]
-    uploadICS(file).then(() => updateCalendarDays())
+    uploadICSFile(file)
   }
   const fetchData = async () => {
     fetchEvents().then(() => updateCalendarDays())

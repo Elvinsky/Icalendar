@@ -19,7 +19,7 @@ export const useEventStore = defineStore('event', () => {
     }
   }
 
-  const uploadICS = async (file: any) => {
+  const uploadICSFile = async (file: any) => {
     if (file.size > 524288) {
       return
     }
@@ -38,12 +38,11 @@ export const useEventStore = defineStore('event', () => {
       isLoading.value = false
     }
   }
-
-  const deleteAllEvents = async () => {
+  const deleteEvent = async (eventID: string) => {
     try {
       isLoading.value = true
-      await axios.delete('http://localhost:3000/api/delete-all-events')
-      events.value = [] // Clear the events array
+      const response = await axios.delete(`http://localhost:3000/api/delete-event/${eventID}`)
+      events.value = events.value.filter(el => el.UID !== eventID)
     } catch (error) {
       console.error(error)
     } finally {
@@ -54,5 +53,5 @@ export const useEventStore = defineStore('event', () => {
     currentEvent.value = data
   }
 
-  return { events, isLoading, currentEvent, uploadICS, fetchEvents, deleteAllEvents, uploadEventDetails }
+  return { events, isLoading, currentEvent, uploadICSFile, fetchEvents, uploadEventDetails, deleteEvent }
 })

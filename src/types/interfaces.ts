@@ -17,4 +17,5 @@ export interface CalendarDay {
   inCurrentMonth: boolean
   dayOfWeek: string
   isToday?: boolean
+  events: ICSFormat[]
 }

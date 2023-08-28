@@ -40,26 +40,34 @@
         class="flex flex-col items-center justify-center h-14 rounded-md text-gray-800 font-semibold text-sm"
         :class="{
           'bg-gray-100': !day.inCurrentMonth,
-          'bg-white hover:bg-amber-300 transition-colors duration-100': day.inCurrentMonth,
-          'bg-blue-200': day.isToday
+          'bg-white hover:bg-red-300 transition-colors duration-100 cursor-pointer': day.inCurrentMonth,
+          'bg-blue-200': day.isToday,
+          'bg-orange-300 hover:bg-red-300 transition-colors duration-100 cursor-pointer': day.events.length > 0
         }"
+        @click="openEvents(day.events)"
       >
         <div class="text-xs text-gray-500">{{ day.dayOfWeek }}</div>
         {{ day.day }}
       </div>
     </div>
   </div>
-  <div>{{ events }}</div>
+  <Teleport to="body">
+    <EventsDescription
+      v-if="isModalVisible"
+      @close-modal="isModalVisible = false"
+    />
+  </Teleport>
 </template>
 
 <script setup lang="ts">
   import { ref, computed } from 'vue'
-  import type { CalendarDay } from '@/types/interfaces'
+  import type { CalendarDay, ICSFormat } from '@/types/interfaces'
   import { useEventStore } from '@/stores/events'
   import { storeToRefs } from 'pinia'
-
+  import { isSameDay, parseISO8601Date } from '../utils/dateManipulation'
+  import EventsDescription from './EventsDescription.vue'
   const todayDate = computed<Date>(() => new Date())
-  const { uploadICS, fetchEvents } = useEventStore()
+  const { uploadICS, fetchEvents, uploadEventDetails } = useEventStore()
   const { isLoading, events } = storeToRefs(useEventStore())
   const months: string[] = [
     'January',
@@ -77,17 +85,22 @@
   ]
 
   const currentDate = ref<Date>(new Date())
-  let currentYear = ref<number>(currentDate.value.getFullYear())
-  let currentMonthIndex = ref<number>(currentDate.value.getMonth())
-
+  const currentYear = ref<number>(currentDate.value.getFullYear())
+  const currentMonthIndex = ref<number>(currentDate.value.getMonth())
   const calendarDays = ref<CalendarDay[]>([])
+  const isModalVisible = ref<boolean>(false)
+
+  const openEvents = (events: ICSFormat[]) => {
+    uploadEventDetails(events)
+    isModalVisible.value = true
+  }
 
   const checkServer = async (event: any) => {
     const file = event.target.files[0]
     uploadICS(file)
   }
   const fetchData = async () => {
-    fetchEvents()
+    fetchEvents().then(() => updateCalendarDays())
   }
   const prevMonth = (): void => {
     if (currentMonthIndex.value === 0) {
@@ -113,14 +126,18 @@
     const firstDay: number = new Date(currentYear.value, currentMonthIndex.value, 1).getDay()
     const daysInMonth: number = new Date(currentYear.value, currentMonthIndex.value + 1, 0).getDate()
 
-    const days: CalendarDay[] = []
+    const days = []
     for (let i = 1; i <= daysInMonth; i++) {
       const date = new Date(currentYear.value, currentMonthIndex.value, i)
+      const eventsOnDay = events.value.filter(event => {
+        return isSameDay(parseISO8601Date(event.DTSTART), date)
+      })
       days.push({
         day: i,
         inCurrentMonth: true,
         dayOfWeek: getDayAbbreviation(date),
-        isToday: date.toDateString() === todayDate.value.toDateString()
+        isToday: date.toDateString() === todayDate.value.toDateString(),
+        events: eventsOnDay
       })
     }
 
@@ -128,7 +145,8 @@
       days.unshift({
         day: '',
         inCurrentMonth: false,
-        dayOfWeek: ''
+        dayOfWeek: '',
+        events: []
       })
     }
 
@@ -143,4 +161,5 @@
   }
 
   updateCalendarDays()
+  fetchData()
 </script>

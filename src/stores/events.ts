@@ -6,7 +6,7 @@ import axios from 'axios'
 export const useEventStore = defineStore('event', () => {
   const events = ref<ICSFormat[]>([])
   const isLoading = ref<boolean>(false)
-
+  const currentEvent = ref<ICSFormat[]>([])
   const fetchEvents = async () => {
     try {
       isLoading.value = true
@@ -50,6 +50,9 @@ export const useEventStore = defineStore('event', () => {
       isLoading.value = false
     }
   }
+  const uploadEventDetails = (data: ICSFormat[]) => {
+    currentEvent.value = data
+  }
 
-  return { events, isLoading, uploadICS, fetchEvents, deleteAllEvents }
+  return { events, isLoading, currentEvent, uploadICS, fetchEvents, deleteAllEvents, uploadEventDetails }
 })

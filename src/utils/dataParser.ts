@@ -1,4 +1,4 @@
-import type { ICSFormat } from './types/interfaces'
+import type { ICSFormat } from '../types/interfaces'
 
 export const parseFromICS = (icsData: string): ICSFormat[] => {
   const events = icsData.split('BEGIN:VEVENT')
@@ -33,7 +33,7 @@ export const readICSFile = (filePath: string): ICSFormat[] => {
     return []
   }
 }
-export const parseToICF = (obj: ICSFormat[], filename?: string) => {
+export const parseToICS = (obj: ICSFormat[], filename: string) => {
   let ICSFile = `BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//Example Corp//iCal 1.0//EN

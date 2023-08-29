@@ -12,10 +12,16 @@
         class="p-2 rounded-md bg-green-300 font-semibold transition-all duration-200 hover:scale-105"
       />
       <button
-        @click="fetchData"
+        @click="handleOpenAddModal"
         class="p-2 rounded-md bg-green-300 font-semibold transition-all duration-200 hover:scale-105"
       >
-        Refresh
+        Add
+      </button>
+      <button
+        @click="exportICS"
+        class="p-2 rounded-md bg-green-300 font-semibold transition-all duration-200 hover:scale-105"
+      >
+        Export
       </button>
       <div class="flex flex-row items-center">
         <button
@@ -39,10 +45,10 @@
         :key="index"
         class="flex flex-col items-center justify-center h-14 rounded-md text-gray-800 font-semibold text-sm"
         :class="{
-          'bg-gray-100': !day.inCurrentMonth,
-          'bg-white hover:bg-red-300 transition-colors duration-100 cursor-pointer': day.inCurrentMonth,
-          'bg-blue-200': day.isToday,
-          'bg-orange-300 hover:bg-red-300 transition-colors duration-100 cursor-pointer': day.events.length > 0
+          'hover:bg-red-300 transition-colors duration-100 cursor-pointer': day.inCurrentMonth,
+          'bg-orange-400 hover:bg-red-300 transition-colors duration-100 cursor-pointer': day.events.length > 0,
+          'bg-gray-200': !day.inCurrentMonth,
+          'border-2 border-black border-spacing-2': day.isToday
         }"
         @click="openEvents(day.events)"
       >
@@ -55,14 +61,24 @@
     <EventsDescription
       v-if="modalActive === 'view'"
       @close-modal="modalActive = ''"
-      @open-add-modal="modalActive = 'add'"
       @delete-event="handleDelete"
+      @patch-event="handleOpenPatch"
     />
     <EventModal
-      v-if="modalActive === 'add'"
+      v-if="modalActive === 'add' || modalActive === 'patch'"
+      :mode="modalActive"
       @close-modal="modalActive = ''"
+      @submit-form="handleSubmit"
     />
   </Teleport>
+  <!-- <div>
+    <p
+      v-for="event in events"
+      :key="event.UID"
+    >
+      {{ event.SUMMARY }} - {{ event.DTSTART }}
+    </p>
+  </div> -->
 </template>
 
 <script setup lang="ts">
@@ -73,8 +89,10 @@
   import { isSameDay, parseISO8601Date } from '../utils/dateManipulation'
   import EventsDescription from './EventsDescription.vue'
   import EventModal from './EventModal.vue'
+  import { parseToICS } from '@/utils/dataParser'
   const todayDate = computed<Date>(() => new Date())
-  const { uploadICSFile, fetchEvents, uploadEventDetails, deleteEvent } = useEventStore()
+  const { uploadICSFile, fetchEvents, uploadEventDetails, deleteEvent, uploadICSObject, patchEvent, deleteAllEvents } =
+    useEventStore()
   const { isLoading, events } = storeToRefs(useEventStore())
   const months: string[] = [
     'January',
@@ -95,11 +113,25 @@
   const currentYear = ref<number>(currentDate.value.getFullYear())
   const currentMonthIndex = ref<number>(currentDate.value.getMonth())
   const calendarDays = ref<CalendarDay[]>([])
-  const modalActive = ref<'view' | 'add' | ''>('')
-
+  const modalActive = ref<'view' | 'add' | 'patch' | ''>('')
+  const handleOpenPatch = (event: ICSFormat) => {
+    uploadEventDetails([event])
+    modalActive.value = 'patch'
+  }
+  const exportICS = () => {
+    parseToICS(events.value, 'exported')
+  }
+  const handleSubmit = (event: ICSFormat) => {
+    if (modalActive.value === 'add') uploadICSObject(event).then(() => updateCalendarDays())
+    else if (modalActive.value === 'patch') patchEvent(event.UID, event).then(() => updateCalendarDays())
+    modalActive.value = ''
+  }
   const openEvents = (events: ICSFormat[]) => {
     uploadEventDetails(events)
     modalActive.value = 'view'
+  }
+  const handleOpenAddModal = () => {
+    modalActive.value = 'add'
   }
   const handleDelete = async (id: string) => {
     deleteEvent(id).then(() => updateCalendarDays())
@@ -139,7 +171,7 @@
     const days = []
     for (let i = 1; i <= daysInMonth; i++) {
       const date = new Date(currentYear.value, currentMonthIndex.value, i)
-      const eventsOnDay = events.value.filter(event => {
+      const eventsOnDay = events.value.filter((event: ICSFormat) => {
         return isSameDay(parseISO8601Date(event.DTSTART), date)
       })
       days.push({

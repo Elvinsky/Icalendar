@@ -115,7 +115,7 @@ app.patch('/api/update-event/:uid', async (req, res) => {
           MAIL: eventData.CN.MAIL
         }
       },
-      { new: true } // Return the updated document
+      { new: true }
     )
 
     if (!updatedEvent) {

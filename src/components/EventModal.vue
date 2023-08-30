@@ -52,38 +52,62 @@
 </template>
 
 <script setup lang="ts">
-  import type { ICSFormat } from '@/types/interfaces'
-  import { ref } from 'vue'
+  import { computed } from 'vue'
   import { generateUID } from '../utils/uid'
+  import { storeToRefs } from 'pinia'
+  import { useEventStore } from '@/stores/events'
+  import { parseISO8601Date } from '@/utils/dateManipulation'
+  import { useUserStore } from '@/stores/auth'
 
-  const emits = defineEmits(['closeModal'])
+  const { localusername } = storeToRefs(useUserStore())
+
+  const emits = defineEmits(['closeModal', 'submitForm'])
+  const props = defineProps<{ mode: string }>()
   const closeModal = () => {
     emits('closeModal')
   }
-  const formData = ref<ICSFormat>({
-    UID: '',
-    DESCRIPTION: '',
-    DTEND: '',
-    DTSTART: '',
-    DTSTAMP: '',
-    LOCATION: '',
-    SUMMARY: '',
-    CN: {
-      OWNER: '',
-      MAIL: ''
-    }
+  const { currentEvent } = storeToRefs(useEventStore())
+  const formData = computed(() => {
+    if (props.mode === 'patch') {
+      return {
+        UID: currentEvent.value[0].UID,
+        DESCRIPTION: currentEvent.value[0].DESCRIPTION,
+        DTEND: parseISO8601Date(currentEvent.value[0].DTEND).toISOString().substring(0, 16),
+        DTSTART: parseISO8601Date(currentEvent.value[0].DTSTART).toISOString().substring(0, 16),
+        DTSTAMP: '',
+        LOCATION: currentEvent.value[0].LOCATION,
+        SUMMARY: currentEvent.value[0].SUMMARY,
+        CN: {
+          OWNER: currentEvent.value[0].CN.OWNER,
+          MAIL: currentEvent.value[0].CN.MAIL
+        }
+      }
+    } else
+      return {
+        UID: generateUID(),
+        DESCRIPTION: '',
+        DTEND: new Date().toISOString().substring(0, 16),
+        DTSTART: new Date().toISOString().substring(0, 16),
+        DTSTAMP: '',
+        LOCATION: '',
+        SUMMARY: '',
+        CN: {
+          OWNER: '',
+          MAIL: ''
+        }
+      }
   })
   const submit = () => {
-    console.log({
+    if (!formData.value.DESCRIPTION || !formData.value.SUMMARY || !formData.value.LOCATION) return
+    emits('submitForm', {
       ...formData.value,
-      DTSTART: `${formData.value.DTSTART}:00.000Z`,
-      DTEND: `${formData.value.DTEND}:00.000Z`,
-      DTSTAMP: new Date().toISOString(),
+      DTSTART: `${formData.value.DTSTART}:00.000Z`.replace(/[-:.]/g, ''),
+      DTEND: `${formData.value.DTEND}:00.000Z`.replace(/[-:.]/g, ''),
+      DTSTAMP: new Date().toISOString().replace(/[-:.]/g, ''),
       CN: {
-        OWNER: 'Nick',
-        MAIL: 'sample@mail.com'
-      },
-      UID: generateUID()
+        OWNER: localusername.value,
+        MAIL: `${localusername}@mail.com`
+      }
     })
   }
 </script>

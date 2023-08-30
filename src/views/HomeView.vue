@@ -1,5 +1,5 @@
 <template>
-  <div v-if="isLoading">loading</div>
+  <CustomLoader v-if="isLoading || isUserLoading" />
   <div
     v-else
     class="flex flex-col items-center justify-center gap-4 mt-20"
@@ -12,10 +12,16 @@
         class="p-2 rounded-md bg-green-300 font-semibold transition-all duration-200 hover:scale-105"
       />
       <button
-        @click="fetchData"
+        @click="handleOpenAddModal"
         class="p-2 rounded-md bg-green-300 font-semibold transition-all duration-200 hover:scale-105"
       >
-        Refresh
+        Add
+      </button>
+      <button
+        @click="exportICS"
+        class="p-2 rounded-md bg-green-300 font-semibold transition-all duration-200 hover:scale-105"
+      >
+        Export
       </button>
       <div class="flex flex-row items-center">
         <button
@@ -39,10 +45,10 @@
         :key="index"
         class="flex flex-col items-center justify-center h-14 rounded-md text-gray-800 font-semibold text-sm"
         :class="{
-          'bg-gray-100': !day.inCurrentMonth,
-          'bg-white hover:bg-red-300 transition-colors duration-100 cursor-pointer': day.inCurrentMonth,
-          'bg-blue-200': day.isToday,
-          'bg-orange-300 hover:bg-red-300 transition-colors duration-100 cursor-pointer': day.events.length > 0
+          'hover:bg-red-300 transition-colors duration-100 cursor-pointer': day.inCurrentMonth,
+          'bg-orange-400 hover:bg-red-300 transition-colors duration-100 cursor-pointer': day.events.length > 0,
+          'bg-gray-200': !day.inCurrentMonth,
+          'border-2 border-black border-spacing-2': day.isToday
         }"
         @click="openEvents(day.events)"
       >
@@ -55,27 +61,36 @@
     <EventsDescription
       v-if="modalActive === 'view'"
       @close-modal="modalActive = ''"
-      @open-add-modal="modalActive = 'add'"
       @delete-event="handleDelete"
+      @patch-event="handleOpenPatch"
     />
     <EventModal
-      v-if="modalActive === 'add'"
+      v-if="modalActive === 'add' || modalActive === 'patch'"
+      :mode="modalActive"
       @close-modal="modalActive = ''"
+      @submit-form="handleSubmit"
     />
   </Teleport>
 </template>
 
 <script setup lang="ts">
   import { ref, computed } from 'vue'
-  import type { CalendarDay, ICSFormat } from '@/types/interfaces'
-  import { useEventStore } from '@/stores/events'
+  import type { CalendarDay, ICSFormat } from '../types/interfaces'
+  import { useEventStore } from '../stores/events'
   import { storeToRefs } from 'pinia'
   import { isSameDay, parseISO8601Date } from '../utils/dateManipulation'
-  import EventsDescription from './EventsDescription.vue'
-  import EventModal from './EventModal.vue'
+  import EventsDescription from '../components/EventsDescription.vue'
+  import EventModal from '../components/EventModal.vue'
+  import { parseToICS } from '../utils/dataParser'
+  import CustomLoader from '../components/CustomLoader.vue'
+  import { useUserStore } from '@/stores/auth'
+
   const todayDate = computed<Date>(() => new Date())
-  const { uploadICSFile, fetchEvents, uploadEventDetails, deleteEvent } = useEventStore()
+  const { uploadICSFile, fetchEvents, uploadEventDetails, deleteEvent, uploadICSObject, patchEvent } = useEventStore()
+
+  const { isUserLoading } = storeToRefs(useUserStore())
   const { isLoading, events } = storeToRefs(useEventStore())
+  const { checkAuth } = useUserStore()
   const months: string[] = [
     'January',
     'February',
@@ -95,11 +110,25 @@
   const currentYear = ref<number>(currentDate.value.getFullYear())
   const currentMonthIndex = ref<number>(currentDate.value.getMonth())
   const calendarDays = ref<CalendarDay[]>([])
-  const modalActive = ref<'view' | 'add' | ''>('')
-
+  const modalActive = ref<'view' | 'add' | 'patch' | ''>('')
+  const handleOpenPatch = (event: ICSFormat) => {
+    uploadEventDetails([event])
+    modalActive.value = 'patch'
+  }
+  const exportICS = () => {
+    parseToICS(events.value, 'exported')
+  }
+  const handleSubmit = (event: ICSFormat) => {
+    if (modalActive.value === 'add') uploadICSObject(event).then(() => updateCalendarDays())
+    else if (modalActive.value === 'patch') patchEvent(event.UID, event).then(() => updateCalendarDays())
+    modalActive.value = ''
+  }
   const openEvents = (events: ICSFormat[]) => {
     uploadEventDetails(events)
     modalActive.value = 'view'
+  }
+  const handleOpenAddModal = () => {
+    modalActive.value = 'add'
   }
   const handleDelete = async (id: string) => {
     deleteEvent(id).then(() => updateCalendarDays())
@@ -107,7 +136,10 @@
   }
   const uploadICS = async (event: any) => {
     const file = event.target.files[0]
-    uploadICSFile(file)
+    uploadICSFile(file).then(() => {
+      fetchData()
+      updateCalendarDays()
+    })
   }
   const fetchData = async () => {
     fetchEvents().then(() => updateCalendarDays())
@@ -133,13 +165,14 @@
   }
 
   const updateCalendarDays = (): void => {
+    if (isLoading.value) return
     const firstDay: number = new Date(currentYear.value, currentMonthIndex.value, 1).getDay()
     const daysInMonth: number = new Date(currentYear.value, currentMonthIndex.value + 1, 0).getDate()
 
     const days = []
     for (let i = 1; i <= daysInMonth; i++) {
       const date = new Date(currentYear.value, currentMonthIndex.value, i)
-      const eventsOnDay = events.value.filter(event => {
+      const eventsOnDay = events.value.filter((event: ICSFormat) => {
         return isSameDay(parseISO8601Date(event.DTSTART), date)
       })
       days.push({
@@ -172,4 +205,5 @@
 
   updateCalendarDays()
   fetchData()
+  checkAuth()
 </script>

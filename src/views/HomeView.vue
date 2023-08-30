@@ -50,7 +50,7 @@
           'bg-gray-200': !day.inCurrentMonth,
           'border-2 border-black border-spacing-2': day.isToday
         }"
-        @click="openEvents(day.events)"
+        @click="openEvents(day.inCurrentMonth ? day.events : undefined)"
       >
         <div class="text-xs text-gray-500">{{ day.dayOfWeek }}</div>
         {{ day.day }}
@@ -86,7 +86,8 @@
   import { useUserStore } from '@/stores/auth'
 
   const todayDate = computed<Date>(() => new Date())
-  const { uploadICSFile, fetchEvents, uploadEventDetails, deleteEvent, uploadICSObject, patchEvent } = useEventStore()
+  const { uploadICSFile, fetchEvents, uploadEventDetails, deleteEvent, uploadICSObject, patchEvent, deleteAllEvents } =
+    useEventStore()
 
   const { isUserLoading } = storeToRefs(useUserStore())
   const { isLoading, events } = storeToRefs(useEventStore())
@@ -119,11 +120,20 @@
     parseToICS(events.value, 'exported')
   }
   const handleSubmit = (event: ICSFormat) => {
-    if (modalActive.value === 'add') uploadICSObject(event).then(() => updateCalendarDays())
-    else if (modalActive.value === 'patch') patchEvent(event.UID, event).then(() => updateCalendarDays())
+    if (modalActive.value === 'add')
+      uploadICSObject(event).then(() => {
+        fetchData()
+        updateCalendarDays()
+      })
+    else if (modalActive.value === 'patch')
+      patchEvent(event.UID, event).then(() => {
+        fetchData()
+        updateCalendarDays()
+      })
     modalActive.value = ''
   }
-  const openEvents = (events: ICSFormat[]) => {
+  const openEvents = (events?: ICSFormat[]) => {
+    if (!events) return
     uploadEventDetails(events)
     modalActive.value = 'view'
   }

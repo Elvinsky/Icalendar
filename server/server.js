@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 const express = require('express')
 const jwt = require('jsonwebtoken')
-const bcrypt = require('bcrypt') // Don't forget to add this line
+const bcrypt = require('bcrypt')
 const path = require('path')
 const cors = require('cors')
 const multer = require('multer')

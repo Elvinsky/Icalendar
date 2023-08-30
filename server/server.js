@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 const express = require('express')
 const jwt = require('jsonwebtoken')
-const bcrypt = require('bcrypt') // Don't forget to add this line
+const bcrypt = require('bcrypt')
 const path = require('path')
 const cors = require('cors')
 const multer = require('multer')
@@ -37,15 +37,12 @@ app.post('/api/upload-ics-file', upload.single('icsFile'), async (req, res) => {
     const icsContent = req.file.buffer.toString('utf-8')
     const eventDataArray = readICSFile(icsContent)
 
-    const existingEvents = await ICSFormat.find({}, 'DESCRIPTION DTSTAMP')
+    const existingEvents = await ICSFormat.find({}, 'UID')
 
     const newEvents = []
 
     for (const eventData of eventDataArray) {
-      const isEventExisting = existingEvents.some(
-        existingEvent =>
-          existingEvent.DESCRIPTION === eventData.DESCRIPTION && existingEvent.DTSTAMP === eventData.DTSTAMP
-      )
+      const isEventExisting = existingEvents.some(existingEvent => existingEvent.UID === eventData.UID)
 
       if (!isEventExisting) {
         const newEvent = new ICSFormat({
@@ -118,7 +115,7 @@ app.patch('/api/update-event/:uid', async (req, res) => {
           MAIL: eventData.CN.MAIL
         }
       },
-      { new: true } // Return the updated document
+      { new: true }
     )
 
     if (!updatedEvent) {

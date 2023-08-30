@@ -37,15 +37,12 @@ app.post('/api/upload-ics-file', upload.single('icsFile'), async (req, res) => {
     const icsContent = req.file.buffer.toString('utf-8')
     const eventDataArray = readICSFile(icsContent)
 
-    const existingEvents = await ICSFormat.find({}, 'DESCRIPTION DTSTAMP')
+    const existingEvents = await ICSFormat.find({}, 'UID')
 
     const newEvents = []
 
     for (const eventData of eventDataArray) {
-      const isEventExisting = existingEvents.some(
-        existingEvent =>
-          existingEvent.DESCRIPTION === eventData.DESCRIPTION && existingEvent.DTSTAMP === eventData.DTSTAMP
-      )
+      const isEventExisting = existingEvents.some(existingEvent => existingEvent.UID === eventData.UID)
 
       if (!isEventExisting) {
         const newEvent = new ICSFormat({

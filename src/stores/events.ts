@@ -31,7 +31,7 @@ export const useEventStore = defineStore('event', () => {
       const response = await axios.post('http://localhost:3000/api/upload-ics-file', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       })
-      events.value.push(response.data)
+      events.value = [...events.value, response.data]
     } catch (error) {
       console.error(error)
     } finally {

@@ -52,12 +52,14 @@
 </template>
 
 <script setup lang="ts">
-  import type { ICSFormat } from '@/types/interfaces'
-  import { computed, ref } from 'vue'
+  import { computed } from 'vue'
   import { generateUID } from '../utils/uid'
   import { storeToRefs } from 'pinia'
   import { useEventStore } from '@/stores/events'
   import { parseISO8601Date } from '@/utils/dateManipulation'
+  import { useUserStore } from '@/stores/auth'
+
+  const { localusername } = storeToRefs(useUserStore())
 
   const emits = defineEmits(['closeModal', 'submitForm'])
   const props = defineProps<{ mode: string }>()
@@ -103,8 +105,8 @@
       DTEND: `${formData.value.DTEND}:00.000Z`.replace(/[-:.]/g, ''),
       DTSTAMP: new Date().toISOString().replace(/[-:.]/g, ''),
       CN: {
-        OWNER: 'Nick',
-        MAIL: 'sample@mail.com'
+        OWNER: localusername.value,
+        MAIL: `${localusername}@mail.com`
       }
     })
   }

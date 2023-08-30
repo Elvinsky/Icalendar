@@ -24,15 +24,6 @@ export const parseFromICS = (icsData: string): ICSFormat[] => {
   parsedEvents.shift()
   return parsedEvents
 }
-export const readICSFile = (filePath: string): ICSFormat[] => {
-  try {
-    const fileData = readFileSync(filePath, 'utf-8')
-    return parseFromICS(fileData)
-  } catch (error) {
-    console.error('Error reading .ics file:', error)
-    return []
-  }
-}
 export const parseToICS = (obj: ICSFormat[], filename: string) => {
   let ICSFile = `BEGIN:VCALENDAR
 VERSION:2.0

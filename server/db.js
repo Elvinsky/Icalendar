@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 const mongoose = require('mongoose')
 
-const MONGODB_URI = 'mongodb+srv://Senator:_18082004_@innocalclaster.eyy4cd5.mongodb.net/' // Adjust as needed
+const MONGODB_URI = 'mongodb+srv://Senator:_18082004_@innocalclaster.eyy4cd5.mongodb.net/'
 
 mongoose.connect(MONGODB_URI, {
   useNewUrlParser: true,

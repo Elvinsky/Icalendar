@@ -1,5 +1,5 @@
 <template>
-  <div v-if="isLoading">loading</div>
+  <CustomLoader v-if="isLoading || isUserLoading" />
   <div
     v-else
     class="flex flex-col items-center justify-center gap-4 mt-20"
@@ -71,29 +71,26 @@
       @submit-form="handleSubmit"
     />
   </Teleport>
-  <!-- <div>
-    <p
-      v-for="event in events"
-      :key="event.UID"
-    >
-      {{ event.SUMMARY }} - {{ event.DTSTART }}
-    </p>
-  </div> -->
 </template>
 
 <script setup lang="ts">
   import { ref, computed } from 'vue'
-  import type { CalendarDay, ICSFormat } from '@/types/interfaces'
-  import { useEventStore } from '@/stores/events'
+  import type { CalendarDay, ICSFormat } from '../types/interfaces'
+  import { useEventStore } from '../stores/events'
   import { storeToRefs } from 'pinia'
   import { isSameDay, parseISO8601Date } from '../utils/dateManipulation'
-  import EventsDescription from './EventsDescription.vue'
-  import EventModal from './EventModal.vue'
-  import { parseToICS } from '@/utils/dataParser'
+  import EventsDescription from '../components/EventsDescription.vue'
+  import EventModal from '../components/EventModal.vue'
+  import { parseToICS } from '../utils/dataParser'
+  import CustomLoader from '../components/CustomLoader.vue'
+  import { useUserStore } from '@/stores/auth'
+
   const todayDate = computed<Date>(() => new Date())
-  const { uploadICSFile, fetchEvents, uploadEventDetails, deleteEvent, uploadICSObject, patchEvent, deleteAllEvents } =
-    useEventStore()
+  const { uploadICSFile, fetchEvents, uploadEventDetails, deleteEvent, uploadICSObject, patchEvent } = useEventStore()
+
+  const { isUserLoading } = storeToRefs(useUserStore())
   const { isLoading, events } = storeToRefs(useEventStore())
+  const { checkAuth } = useUserStore()
   const months: string[] = [
     'January',
     'February',
@@ -139,7 +136,10 @@
   }
   const uploadICS = async (event: any) => {
     const file = event.target.files[0]
-    uploadICSFile(file)
+    uploadICSFile(file).then(() => {
+      fetchData()
+      updateCalendarDays()
+    })
   }
   const fetchData = async () => {
     fetchEvents().then(() => updateCalendarDays())
@@ -165,6 +165,7 @@
   }
 
   const updateCalendarDays = (): void => {
+    if (isLoading.value) return
     const firstDay: number = new Date(currentYear.value, currentMonthIndex.value, 1).getDay()
     const daysInMonth: number = new Date(currentYear.value, currentMonthIndex.value + 1, 0).getDate()
 
@@ -204,4 +205,5 @@
 
   updateCalendarDays()
   fetchData()
+  checkAuth()
 </script>

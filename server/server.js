@@ -1,13 +1,17 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 const express = require('express')
-const app = express()
-app.use(express.json())
+const jwt = require('jsonwebtoken')
+const bcrypt = require('bcrypt') // Don't forget to add this line
 const path = require('path')
 const cors = require('cors')
 const multer = require('multer')
 const db = require('./db')
 const ICSFormat = require('./models/ICSModel')
+const User = require('./models/UserModel')
 const { readICSFile } = require('./utils')
+
+const app = express()
+app.use(express.json())
 
 const PORT = process.env.PORT || 3000
 
@@ -22,6 +26,8 @@ app.use(
 
 const storage = multer.memoryStorage()
 const upload = multer({ storage })
+
+//ICS
 
 app.post('/api/upload-ics-file', upload.single('icsFile'), async (req, res) => {
   try {
@@ -98,7 +104,6 @@ app.patch('/api/update-event/:uid', async (req, res) => {
   try {
     const uid = req.params.uid
     const eventData = req.body
-    console.log(uid, eventData)
     const updatedEvent = await ICSFormat.findOneAndUpdate(
       { UID: uid },
       {
@@ -160,6 +165,70 @@ app.delete('/api/delete-all-events', async (req, res) => {
   } catch (error) {
     console.error(error)
     res.status(500).send('Error deleting events')
+  }
+})
+
+//Auth
+const verifyToken = (req, res, next) => {
+  const token = req.header('Authorization')
+  if (!token) {
+    return res.status(401).send('Access denied')
+  }
+  try {
+    const decoded = jwt.verify(token, 'innowise')
+    req.userId = decoded.userId
+    req.username = decoded.username
+    next()
+  } catch (error) {
+    res.status(401).send('Invalid token')
+  }
+}
+app.post('/api/register', async (req, res) => {
+  try {
+    const { username, password } = req.body
+    const hashedPassword = await bcrypt.hash(password, 10)
+    const user = new User({ username, password: hashedPassword })
+    await user.save()
+    res.status(201).send('User registered successfully')
+  } catch (error) {
+    res.status(500).send('Error registering user')
+  }
+})
+
+app.post('/api/login', async (req, res) => {
+  try {
+    const { username, password } = req.body
+    const user = await User.findOne({ username })
+    if (!user) {
+      return res.status(401).send('Invalid credentials')
+    }
+    const isPasswordValid = await bcrypt.compare(password, user.password)
+    if (!isPasswordValid) {
+      return res.status(401).send('Invalid credentials')
+    }
+    const token = jwt.sign({ userId: user._id }, 'secretKey')
+    res.json({ token })
+  } catch (error) {
+    res.status(500).send('Error logging in')
+  }
+})
+
+app.get('/api/protected-route', verifyToken, (req, res) => {
+  res.send('Protected route accessed')
+})
+
+app.post('/api/auth/logout', (req, res) => {
+  localStorage.clear()
+  res.status(200).send('Logged out successfully')
+})
+
+app.get('/api/auth/check-auth', verifyToken, (req, res) => {
+  try {
+    const decoded = jwt.verify(req.header('Authorization'), 'innowise')
+    const username = decoded.username
+    res.status(200).send(username)
+  } catch (error) {
+    res.status(401).send('Invalid token')
   }
 })
 
